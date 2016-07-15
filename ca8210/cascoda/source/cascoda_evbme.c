@@ -44,6 +44,16 @@
 extern u32_t     TimerValue ;
 
 /******************************************************************************/
+/****** Local Definitions                                                ******/
+/******************************************************************************/
+// Wait Time between Power-Up and Initialisation [ms]
+#define EVBME_TPUP   200
+// Timeout for Wakeup Condition after Reset
+#define EVBME_TWUP   50
+// Reset Time during Initialisation
+#define EVBME_TRESET 50
+
+/******************************************************************************/
 /****** Global Parameters that can by set via EVBME_SET_request          ******/
 /******************************************************************************/
 u8_t EVBME_SetVal[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -81,6 +91,8 @@ u8_t EVBMEInitialise(u8_t *version)
  EVBME_SetVal[0] = 1;             // initialise/reset PIBs on higher layers
 
  BSP_ShowTitle(version);          // Show message on the LCD if available
+
+ BSP_WaitTicks(EVBME_TPUP);       // make sure power to RF is fully on
 
  status = EVBME_Connect(version); // reset and connect RF
 
@@ -490,18 +502,18 @@ u8_t EVBME_ResetRF(u8_t ms)
  else
   BSP_ResetRF(1);
 
- startticks = AbsoluteTicks;  // wait for and time-out wake-up indication (10 ms)
+ startticks = AbsoluteTicks;  // wait for and time-out wake-up indication (EVBME_TWUP)
  do
   {
   currentticks = AbsoluteTicks - startticks;
-  } while ((BSP_SenseRFIRQ() != 0) && (currentticks < 10));
+  } while ((BSP_SenseRFIRQ() != 0) && (currentticks < EVBME_TWUP));
 
  SPI_Exchange( NULLP, &SPI_Receive );
 
  command   = SPI_Receive.CommandId;
  condition = SPI_Receive.PData.HWMEWakeupInd.WakeUpCondition;
 
- if(currentticks >= 10)
+ if(currentticks >= EVBME_TWUP)
   {
   dps("CA-821X connection timed out, check hardware\n");
   }
@@ -588,7 +600,7 @@ u8_t EVBME_Connect(u8_t *version)
   }
  dpnl();
 
- status = EVBME_ResetRF(50);  // reset RF for 50 ms
+ status = EVBME_ResetRF(EVBME_TRESET);  // reset RF
 
  return(status);
  } // End of EVBME_Connect()
@@ -609,7 +621,7 @@ u8_t EVBME_Connect(u8_t *version)
 void EVBME_Disconnect(void)
  {
  EVBME_SetVal[0] = 1;
- BSP_ResetRF(50);      // reset RF for 50 ms
+ BSP_ResetRF(EVBME_TRESET);      // reset RF
  } // End of EVBME_Disconnect()
 
 
