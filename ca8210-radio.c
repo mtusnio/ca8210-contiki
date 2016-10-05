@@ -803,6 +803,7 @@ PROCESS_THREAD(ca8210_process, ev, data)
         {
         packetbuf_set_datalen(len);
         NETSTACK_RDC.input();
+        process_poll(&ca8210_process);
         }
 
        }
